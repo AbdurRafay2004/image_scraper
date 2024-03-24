@@ -19,9 +19,21 @@ def read_headers_from_file(filename):
   return headers_list
 
 
-def scrape_images(url, target_folder):
+def read_excluded_patterns_from_file(filename):
+  """Reads a list of excluded URL patterns from a text file."""
+  excluded_patterns = []
+  with open(filename, "r") as f:
+    for line in f:
+      pattern = line.strip()  # Remove leading/trailing whitespace and comments
+      if pattern:
+        excluded_patterns.append(pattern)
+  return excluded_patterns
+
+
+def scrape_images(url, target_folder, excluded_patterns_file):
   headers = read_headers_from_file("header_list.txt")  # Load headers from file
   random_headers = random.choice(headers)  # Select a random header
+  excluded_patterns = read_excluded_patterns_from_file(excluded_patterns_file)  # Load patterns from file
 
   try:
     response = requests.get(url, headers=random_headers)
@@ -35,20 +47,27 @@ def scrape_images(url, target_folder):
 
     for image in images:
       image_url = image.get("src")
-      if image_url and image_url.startswith("http"):  # Ensure a valid, absolute URL
-        filename = os.path.basename(image_url)
-        filepath = os.path.join(target_folder, filename)
+      if image_url and image_url.startswith("http"):
+        skip_download = False
+        for pattern in excluded_patterns:
+          if image_url.startswith(pattern):
+            skip_download = True
+            break  # Exit the inner loop if a match is found
 
-        try:
-          image_response = requests.get(image_url, headers=random_headers)
-          image_response.raise_for_status()
+        if not skip_download:  # Download only if not excluded
+          filename = os.path.basename(image_url)
+          filepath = os.path.join(target_folder, filename)
 
-          with open(filepath, "wb") as f:
-            f.write(image_response.content)
-          print(f"Image saved: {filename}")
+          try:
+            image_response = requests.get(image_url, headers=random_headers)
+            image_response.raise_for_status()
 
-        except requests.exceptions.RequestException as e:
-          print(f"Error downloading {image_url}: {e}")
+            with open(filepath, "wb") as f:
+              f.write(image_response.content)
+            print(f"Image saved: {filename}")
+
+          except requests.exceptions.RequestException as e:
+            print(f"Error downloading {image_url}: {e}")
 
   except requests.exceptions.RequestException as e:
     print(f"Error fetching website: {e}")
@@ -59,4 +78,8 @@ if __name__ == "__main__":
   target_dir = input("Enter the full path of the directory to create the folder in: ")
   folder_name = input("Enter the name of the folder to create within the directory: ")
   target_folder = os.path.join(target_dir, folder_name)  # Join path components
-  scrape_images(target_url, target_folder)
+
+  # Define the excluded patterns file (modify the filename as needed)
+  excluded_patterns_file = "excluded_patterns.txt"
+
+  scrape_images(target_url, target_folder, excluded_patterns_file)
