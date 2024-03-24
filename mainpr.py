@@ -40,7 +40,6 @@ def scrape_images(url, target_folder):
         filepath = os.path.join(target_folder, filename)
 
         try:
-          # Removed random_delay() call here (no delays)
           image_response = requests.get(image_url, headers=random_headers)
           image_response.raise_for_status()
 
