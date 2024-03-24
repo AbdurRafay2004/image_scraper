@@ -1,38 +1,30 @@
 import requests
 from bs4 import BeautifulSoup
 import random
-import time
 import os
 
-def get_random_user_agent():
-  user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
-    "Mozilla/5.0 (Linux; Android 12; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.64 Mobile Safari/537.36"
-    
-    "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_11_5) Gecko/20100101 Firefox/72.9"
-    "Mozilla/5.0 (Windows; Windows NT 10.5; Win64; x64; en-US) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/47.0.3194.374 Safari/603.1 Edge/15.92793"
-    "Mozilla/5.0 (Windows; U; Windows NT 10.5;; en-US) AppleWebKit/601.7 (KHTML, like Gecko) Chrome/49.0.2867.180 Safari/600.2 Edge/14.47322"
-    "Mozilla/5.0 (Windows; Windows NT 10.1; x64; en-US) AppleWebKit/601.7 (KHTML, like Gecko) Chrome/53.0.2505.129 Safari/537"
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 9_5_1; like Mac OS X) AppleWebKit/536.14 (KHTML, like Gecko)  Chrome/50.0.1911.252 Mobile Safari/603.7"
-    "Mozilla/5.0 (U; Linux x86_64) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/54.0.2922.318 Safari/603"
-    "Mozilla/5.0 (U; Linux i673 ) AppleWebKit/533.49 (KHTML, like Gecko) Chrome/55.0.1625.229 Safari/600"
-    "Mozilla/5.0 (Windows; U; Windows NT 10.1; WOW64) Gecko/20100101 Firefox/72.7"
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 7_3_7; like Mac OS X) AppleWebKit/602.24 (KHTML, like Gecko)  Chrome/52.0.2106.328 Mobile Safari/601.5"
-    
-  ]
-  return random.choice(user_agents)
 
-def random_delay():
-  # Adjust the range as needed (in seconds)
-  delay = random.uniform(2, 5)  # Delay between 2 and 5 seconds
-  time.sleep(delay)
+def read_headers_from_file(filename):
+  """Reads a list of headers from a text file."""
+  headers_list = []
+  with open(filename, "r") as f:
+    for line in f:
+      line = line.strip()  # Remove leading/trailing whitespace
+      if line and not line.startswith("#"):  # Skip comments and empty lines
+        headers = {}
+        for header_line in line.splitlines():  # Split header lines if multi-line
+          key, value = header_line.split(":", 1)  # Separate key-value pairs
+          headers[key.strip()] = value.strip()
+        headers_list.append(headers)
+  return headers_list
+
 
 def scrape_images(url, target_folder):
-  headers = {"User-Agent": get_random_user_agent()}
+  headers = read_headers_from_file("header_list.txt")  # Load headers from file
+  random_headers = random.choice(headers)  # Select a random header
 
   try:
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=random_headers)
     response.raise_for_status()  # Raise an exception for non-200 status codes
 
     soup = BeautifulSoup(response.content, "html.parser")
@@ -48,8 +40,8 @@ def scrape_images(url, target_folder):
         filepath = os.path.join(target_folder, filename)
 
         try:
-          random_delay()  # Introduce random delay before each request
-          image_response = requests.get(image_url, headers=headers)
+          # Removed random_delay() call here (no delays)
+          image_response = requests.get(image_url, headers=random_headers)
           image_response.raise_for_status()
 
           with open(filepath, "wb") as f:
@@ -61,6 +53,7 @@ def scrape_images(url, target_folder):
 
   except requests.exceptions.RequestException as e:
     print(f"Error fetching website: {e}")
+
 
 if __name__ == "__main__":
   target_url = input("Enter the URL to scrape images from: ")

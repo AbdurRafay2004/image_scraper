@@ -1,0 +1,4 @@
+proxies.txt
+header_list.txt
+#.gitignore
+*.txt
