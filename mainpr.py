@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 
-def scrape_images(url, target_folder="images"):
+def scrape_images(url, target_folder):
     """Scrapes images from the given URL and saves them to the target folder."""
 
     try:
@@ -12,7 +12,8 @@ def scrape_images(url, target_folder="images"):
         soup = BeautifulSoup(response.content, "html.parser")
         images = soup.find_all("img")
 
-        os.makedirs(target_folder, exist_ok=True)  # Create the folder if it doesn't exist
+        # Create the target folder with subdirectories if needed
+        os.makedirs(target_folder, exist_ok=True)
 
         for image in images:
             image_url = image.get("src")
@@ -36,4 +37,7 @@ def scrape_images(url, target_folder="images"):
 
 if __name__ == "__main__":
     target_url = input("Enter the URL to scrape images from: ")
-    scrape_images(target_url)
+    target_dir = input("Enter the full path of the directory to create the folder in: ")
+    folder_name = input("Enter the name of the folder to create within the directory: ")
+    target_folder = os.path.join(target_dir, folder_name)  # Join path components
+    scrape_images(target_url, target_folder)
