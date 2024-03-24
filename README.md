@@ -1,1 +1,1 @@
-# image_scraper
+**Trying to create a web Image scraper using python**
