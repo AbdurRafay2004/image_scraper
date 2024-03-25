@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import random
 import os
-
+from PIL import Image
+import io  # for handling image data in memory
 
 def read_headers_from_file(filename):
   """Reads a list of headers from a text file."""
@@ -30,7 +31,7 @@ def read_excluded_patterns_from_file(filename):
   return excluded_patterns
 
 
-def scrape_images(url, target_folder, excluded_patterns_file):
+def scrape_and_convert_images(url, target_folder, excluded_patterns_file, output_format="png"):
   headers = read_headers_from_file("header_list.txt")  # Load headers from file
   random_headers = random.choice(headers)  # Select a random header
   excluded_patterns = read_excluded_patterns_from_file(excluded_patterns_file)  # Load patterns from file
@@ -62,9 +63,17 @@ def scrape_images(url, target_folder, excluded_patterns_file):
             image_response = requests.get(image_url, headers=random_headers)
             image_response.raise_for_status()
 
-            with open(filepath, "wb") as f:
-              f.write(image_response.content)
-            print(f"Image saved: {filename}")
+            # Open image in read binary mode
+            with open(filepath, "rb") as f:
+              image_data = f.read()
+
+            # Convert image using Pillow (ensure downloaded image is a valid format)
+            try:
+              image = Image.open(io.BytesIO(image_data))
+              image.save(f"{filepath}.{output_format}", output_format)  # Save with desired format
+              print(f"Image saved and converted: {filename}.{output_format}")
+            except OSError as e:
+              print(f"Error converting {filename}: {e}")
 
           except requests.exceptions.RequestException as e:
             print(f"Error downloading {image_url}: {e}")
@@ -82,4 +91,7 @@ if __name__ == "__main__":
   # Define the excluded patterns file (modify the filename as needed)
   excluded_patterns_file = "excluded_patterns.txt"
 
-  scrape_images(target_url, target_folder, excluded_patterns_file)
+  # Specify the desired output format (default: png)
+  output_format = input("Enter the desired output format (png, jpg): ") or "png"
+  
+  scrape_and_convert_images(target_url, target_folder, excluded_patterns_file, output_format)
