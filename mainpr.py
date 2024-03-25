@@ -31,44 +31,48 @@ def read_excluded_patterns_from_file(filename):
 
 
 def scrape_images(url, target_folder, excluded_patterns_file):
-  headers = read_headers_from_file("header_list.txt")  # Load headers from file
-  random_headers = random.choice(headers)  # Select a random header
-  excluded_patterns = read_excluded_patterns_from_file(excluded_patterns_file)  # Load patterns from file
+    headers = read_headers_from_file("header_list.txt")  # Load headers from file
+    random_headers = random.choice(headers)  # Select a random header
+    excluded_patterns = read_excluded_patterns_from_file(excluded_patterns_file)  # Load patterns from file
 
-  try:
-    response = requests.get(url, headers=random_headers)
-    response.raise_for_status()  # Raise an exception for non-200 status codes
+    try:
+        response = requests.get(url, headers=random_headers)
+        response.raise_for_status()  # Raise an exception for non-200 status codes
 
-    soup = BeautifulSoup(response.content, "html.parser")
-    images = soup.find_all("img")
+        soup = BeautifulSoup(response.content, "html.parser")
+        images = soup.find_all("img")
 
-    # Create the target folder with subdirectories if needed
-    os.makedirs(target_folder, exist_ok=True)
+        # Create the target folder with subdirectories if needed
+        os.makedirs(target_folder, exist_ok=True)
 
-    for image in images:
-        image_url = image.get("src")
-        if image_url and image_url.startswith("http"):
-            skip_download = False
-            for pattern in excluded_patterns:
-                if image_url.startswith(pattern):
-                    skip_download = True
-                    break
+        convert_all_to_png = None  # Initialize conversion flag
 
-            if not skip_download:
-                filename = os.path.basename(image_url)
-                filepath = os.path.join(target_folder, filename)
+        for image in images:
+            image_url = image.get("src")
+            if image_url and image_url.startswith("http"):
+                skip_download = False
+                for pattern in excluded_patterns:
+                    if image_url.startswith(pattern):
+                        skip_download = True
+                        break
 
-                try:
-                    image_response = requests.get(image_url, headers=random_headers)
-                    image_response.raise_for_status()
+                if not skip_download:
+                    filename = os.path.basename(image_url)
+                    filepath = os.path.join(target_folder, filename)
 
-                    with open(filepath, "wb") as f:
-                        f.write(image_response.content)
+                    try:
+                        image_response = requests.get(image_url, headers=random_headers)
+                        image_response.raise_for_status()
 
-                    # Check image format before conversion prompt
-                    if not filename.lower().endswith(".png"):
-                        convert_to_png = input(f"Convert {filename} to PNG? (y/n): ")
-                        if convert_to_png.lower() == "y":
+                        with open(filepath, "wb") as f:
+                            f.write(image_response.content)
+
+                        # Check image format and prompt for conversion (once per download)
+                        if convert_all_to_png is None:
+                            if not filename.lower().endswith(".png"):
+                                convert_all_to_png = input(f"Convert all webp/jpg images to PNG? (y/n): ")
+
+                        if convert_all_to_png.lower() == "y" and not filename.lower().endswith(".png"):
                             # Use PIL to convert the image to PNG
                             from PIL import Image
                             try:
@@ -79,14 +83,14 @@ def scrape_images(url, target_folder, excluded_patterns_file):
                                     os.remove(filepath)  # Remove original file
                             except Exception as e:
                                 print(f"Error converting {filename} to PNG: {e}")
-                    else:
-                        print(f"Image saved: {filename}")
+                        else:
+                            print(f"Image saved: {filename}")
 
-                except requests.exceptions.RequestException as e:
-                    print(f"Error downloading {image_url}: {e}")
+                    except requests.exceptions.RequestException as e:
+                        print(f"Error downloading {image_url}: {e}")
 
-  except requests.exceptions.RequestException as e:
-    print(f"Error fetching website: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching website: {e}")
 
 
 if __name__ == "__main__":
